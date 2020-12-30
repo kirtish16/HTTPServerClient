@@ -1,5 +1,3 @@
-package TrialJava;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -8,12 +6,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class Server {
 
-    public static void main( String[] args ) throws Exception {
+    public static void main(String[] args) throws Exception {
+
+        // Step 1-Create a socket and assigned a custom port to it (eg-8081)
         try (ServerSocket serverSocket = new ServerSocket(8081)) {
+            //Step 2-Wait for the client (web browser) to send request.
             while (true) {
+                // Step 3- Accept client request on the server side by using socket.accept command. 
                 try (Socket client = serverSocket.accept()) {
                     handleClient(client);
                 }
@@ -22,53 +26,51 @@ public class Server {
     }
 
     private static void handleClient(Socket client) throws IOException {
+        // Step 5-Get input from user and store it in txt file using file writer command.
+        //     Input data – Name , Division , roll No. ,G.R No. and assignments status.
         BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
         StringBuilder requestBuilder = new StringBuilder();
-        String line,usrData ="",data="";
+        String line, usrData = "", data = "";
 
         String[] stdata = new String[7];
 
-        System.out.println("--------------------------------------");
         while (!(line = br.readLine()).isBlank()) {
             requestBuilder.append(line + "\r\n");
-            if(line.substring(0,3).equals("GET"))
-            {
+            if (line.substring(0, 3).equals("GET")) {
                 usrData = line;
-                System.out.println(usrData + "\r\n");
             }
         }
 
         int len = usrData.length();
-        if(len>15)
-            data = usrData.substring(6,len-9);
 
-        stdata = data.split("&");
+        if (len > 15 && usrData.indexOf("submit.html") != -1) {
+            data = usrData.substring(17, len - 9);
 
-        for(int i=0;i<(stdata.length);i++)
-        {
-            System.out.println(stdata[i]);
+            stdata = data.split("&");
+
+            String datapath = "StudentData.txt";
+
+            try {
+                FileWriter fw = new FileWriter(datapath, true);
+                for (int i = 0; i < (stdata.length); i++) {
+                    for (int j = 0; j < stdata[i].length(); j++)
+                        fw.write(stdata[i].charAt(j));
+                    fw.write(",");
+                }
+                fw.write("\n");
+
+                fw.close();
+            }
+
+            catch (IOException e) {
+            }
+
         }
-        //Data to text file
-        File fp = new File("StudentData.txt");
-        FileWriter fw=new FileWriter(fp); 
-
-        for(int i=0;i<(stdata.length);i++)
-        {
-            for(int j=0;j<stdata[i].length();j++)
-                fw.write(stdata[i].charAt(j));
-            fw.write(",");
-        }
-        fw.close(); 
-
         String request = requestBuilder.toString();
         String[] requestsLines = request.split("\r\n");
         String[] requestLine = requestsLines[0].split(" ");
-        String method = requestLine[0];
         String path = requestLine[1];
-        
-        String version = requestLine[2];
-        String host = requestsLines[1].split(" ")[1];
 
         List<String> headers = new ArrayList<>();
         for (int h = 2; h < requestsLines.length; h++) {
@@ -76,13 +78,7 @@ public class Server {
             headers.add(header);
         }
 
-        String accessLog = String.format("Client %s, method %s, path %s, version %s, host %s, headers %s",
-                client.toString(), method, path, version, host, headers.toString());
-        System.out.println(accessLog);
-
-
         Path filePath = getFilePath(path);
-        System.out.println(filePath);
 
         if (Files.exists(filePath)) {
             // file exist
@@ -93,10 +89,12 @@ public class Server {
             byte[] notFoundContent = "<h1>Not found :(</h1>".getBytes();
             sendResponse(client, "404 Not Found", "text/html", notFoundContent);
         }
-
+        // Step 7 – Close the socket connection using socket.close command.
     }
 
-    private static void sendResponse(Socket client, String status, String contentType, byte[] content) throws IOException {
+    // Step 4- Send html file to the client using output stream.
+    private static void sendResponse(Socket client, String status, String contentType, byte[] content)
+            throws IOException {
         OutputStream clientOutput = client.getOutputStream();
         clientOutput.write(("HTTP/1.1 \r\n" + status).getBytes());
         clientOutput.write(("ContentType: " + contentType + "\r\n").getBytes());
@@ -109,14 +107,15 @@ public class Server {
     }
 
     private static Path getFilePath(String path) {
-        
+
         if ("/".equals(path)) {
             path = "C:\\KIRTISH\\vs code projects\\Java\\TrialJava\\index.html";
         }
 
-        // if(path.indexOf("submit") != -1)
-        //     path = "C:\\KIRTISH\\vs code projects\\Java\\TrialJava\\submit.html";
-        
+        // Step 6 - Send response to the client about submission status.
+        if (path.indexOf("submit") != -1)
+            path = "C:\\KIRTISH\\vs code projects\\Java\\TrialJava\\submit.html";
+
         return Paths.get("", path);
     }
 
@@ -124,5 +123,3 @@ public class Server {
         return Files.probeContentType(filePath);
     }
 }
-
-// name=First&rollno=12&div=B&grno=123&sub=as1&sub1=as2&sub2=as1
