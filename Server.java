@@ -109,12 +109,12 @@ public class Server {
     private static Path getFilePath(String path) {
 
         if ("/".equals(path)) {
-            path = "C:\\KIRTISH\\vs code projects\\Java\\TrialJava\\index.html";
+            path = "index.html";
         }
 
         // Step 6 - Send response to the client about submission status.
         if (path.indexOf("submit") != -1)
-            path = "C:\\KIRTISH\\vs code projects\\Java\\TrialJava\\submit.html";
+            path = "submit.html";
 
         return Paths.get("", path);
     }
